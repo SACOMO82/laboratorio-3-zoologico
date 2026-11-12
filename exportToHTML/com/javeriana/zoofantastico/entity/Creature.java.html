@@ -1,0 +1,71 @@
+<html>
+<head>
+<title>Creature.java</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cf8e6d;}
+.s1 { color: #bcbec4;}
+.s2 { color: #bcbec4;}
+.s3 { color: #5f826b; font-style: italic;}
+.s4 { color: #6aab73;}
+.s5 { color: #2aacb8;}
+</style>
+</head>
+<body bgcolor="#191a1c">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+Creature.java</font>
+</center></td></tr></table>
+<pre><span class="s0">package </span><span class="s1">com</span><span class="s2">.</span><span class="s1">javeriana</span><span class="s2">.</span><span class="s1">zoofantastico</span><span class="s2">.</span><span class="s1">entity</span><span class="s2">;</span>
+
+<span class="s0">import </span><span class="s1">jakarta</span><span class="s2">.</span><span class="s1">persistence</span><span class="s2">.*;</span>
+<span class="s0">import </span><span class="s1">lombok</span><span class="s2">.*;</span>
+
+<span class="s3">/**</span>
+ <span class="s3">* Entidad JPA que representa una Criatura Mágica en el Zoológico.</span>
+ <span class="s3">* </span>
+ <span class="s3">* NOTA DE ARQUITECTURA SENIOR:</span>
+ <span class="s3">* Se evita el uso de @Data para proteger contra ciclos de serialización/toString/equals/hashCode</span>
+ <span class="s3">* con la entidad Zone relacionada.</span>
+ <span class="s3">*/</span>
+<span class="s1">@Entity</span>
+<span class="s1">@Table</span><span class="s2">(</span><span class="s1">name </span><span class="s2">= </span><span class="s4">&quot;creature&quot;</span><span class="s2">)</span>
+<span class="s1">@Getter</span>
+<span class="s1">@Setter</span>
+<span class="s1">@NoArgsConstructor</span>
+<span class="s1">@AllArgsConstructor</span>
+<span class="s1">@Builder</span>
+<span class="s0">public class </span><span class="s1">Creature </span><span class="s2">{</span>
+
+    <span class="s1">@Id</span>
+    <span class="s1">@GeneratedValue</span><span class="s2">(</span><span class="s1">strategy </span><span class="s2">= </span><span class="s1">GenerationType</span><span class="s2">.</span><span class="s1">IDENTITY</span><span class="s2">)</span>
+    <span class="s0">private </span><span class="s1">Long id</span><span class="s2">;</span>
+
+    <span class="s1">@Column</span><span class="s2">(</span><span class="s1">nullable </span><span class="s2">= </span><span class="s0">false</span><span class="s2">, </span><span class="s1">length </span><span class="s2">= </span><span class="s5">100</span><span class="s2">)</span>
+    <span class="s0">private </span><span class="s1">String name</span><span class="s2">;</span>
+
+    <span class="s1">@Column</span><span class="s2">(</span><span class="s1">nullable </span><span class="s2">= </span><span class="s0">false</span><span class="s2">, </span><span class="s1">length </span><span class="s2">= </span><span class="s5">100</span><span class="s2">)</span>
+    <span class="s0">private </span><span class="s1">String species</span><span class="s2">;</span>
+
+    <span class="s1">@Column</span><span class="s2">(</span><span class="s1">nullable </span><span class="s2">= </span><span class="s0">false</span><span class="s2">)</span>
+    <span class="s0">private double </span><span class="s1">size</span><span class="s2">;</span>
+
+    <span class="s1">@Column</span><span class="s2">(</span><span class="s1">name </span><span class="s2">= </span><span class="s4">&quot;danger_level&quot;</span><span class="s2">, </span><span class="s1">nullable </span><span class="s2">= </span><span class="s0">false</span><span class="s2">)</span>
+    <span class="s0">private int </span><span class="s1">dangerLevel</span><span class="s2">;</span>
+
+    <span class="s1">@Column</span><span class="s2">(</span><span class="s1">name </span><span class="s2">= </span><span class="s4">&quot;health_status&quot;</span><span class="s2">, </span><span class="s1">nullable </span><span class="s2">= </span><span class="s0">false</span><span class="s2">, </span><span class="s1">length </span><span class="s2">= </span><span class="s5">50</span><span class="s2">)</span>
+    <span class="s0">private </span><span class="s1">String healthStatus</span><span class="s2">;</span>
+
+    <span class="s3">/**</span>
+     <span class="s3">* Asociación Many-to-One con la Zona.</span>
+     <span class="s3">* Se configura con FetchType.LAZY como buena práctica para evitar que JPA</span>
+     <span class="s3">* ejecute eager joins indiscriminados en todas las consultas por defecto.</span>
+     <span class="s3">*/</span>
+    <span class="s1">@ManyToOne</span><span class="s2">(</span><span class="s1">fetch </span><span class="s2">= </span><span class="s1">FetchType</span><span class="s2">.</span><span class="s1">LAZY</span><span class="s2">)</span>
+    <span class="s1">@JoinColumn</span><span class="s2">(</span><span class="s1">name </span><span class="s2">= </span><span class="s4">&quot;zone_id&quot;</span><span class="s2">, </span><span class="s1">nullable </span><span class="s2">= </span><span class="s0">false</span><span class="s2">)</span>
+    <span class="s0">private </span><span class="s1">Zone zone</span><span class="s2">;</span>
+<span class="s2">}</span>
+</pre>
+</body>
+</html>

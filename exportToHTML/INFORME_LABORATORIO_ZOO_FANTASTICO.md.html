@@ -1,0 +1,387 @@
+<html>
+<head>
+<title>INFORME_LABORATORIO_ZOO_FANTASTICO.md</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cf8e6d;}
+.s1 { color: #bcbec4;}
+.s2 { color: #6aab73;}
+.s3 { color: #c77dbb; font-style: italic;}
+.s4 { color: #bcbec4;}
+</style>
+</head>
+<body bgcolor="#191a1c">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+INFORME_LABORATORIO_ZOO_FANTASTICO.md</font>
+</center></td></tr></table>
+<pre><span class="s0"># </span><span class="s1">Pontificia Universidad Javeriana - Facultad de Ingeniería</span>
+<span class="s0">## </span><span class="s1">Principios de Desarrollo de Software</span>
+<span class="s0">### </span><span class="s1">Informe de Laboratorio: Implementación de un CRUD para un &quot;Zoo de Mascotas Fantásticas&quot; en Spring Boot</span>
+
+<span class="s0">---</span>
+
+<span class="s1">**Integrantes del Equipo:** [Nombres de los integrantes]  </span>
+<span class="s1">**Docente Revisor:** soldash  </span>
+<span class="s1">**Fecha:** Septiembre 2026  </span>
+<span class="s1">**Repositorio GitHub:** [URL del repositorio]  </span>
+<span class="s1">**Tecnologías:** Java 25 (LTS) / Spring Boot 3.4.3 / MySQL 8.4 / Maven / Git &amp; Gitflow  </span>
+
+<span class="s0">---</span>
+
+<span class="s0">## </span><span class="s1">1. Descripción del Proyecto</span>
+
+<span class="s0">### </span><span class="s1">1.1. Objetivo y Alcance</span>
+<span class="s1">El objetivo principal del proyecto es el diseño, construcción y validación de un sistema de gestión empresarial (CRUD) para un **&quot;Zoo de Mascotas Fantásticas&quot;**, aplicando una arquitectura limpia en 3 capas (Presentación, Lógica de Negocio y Acceso a Datos) con Spring Boot y MySQL.</span>
+
+<span class="s1">El sistema permite:</span>
+<span class="s0">- </span><span class="s1">Administrar el ciclo de vida completo (Crear, Leer, Actualizar, Eliminar) de **Criaturas Mágicas** (`Creature`).</span>
+<span class="s0">- </span><span class="s1">Administrar las **Zonas del Zoológico** (`Zone`) donde habitan las criaturas.</span>
+<span class="s0">- </span><span class="s1">Garantizar la integridad referencial y el cumplimiento riguroso de reglas de negocio veterinarias y de capacidad física mediante códigos de estado HTTP semánticos (200, 201, 204, 400, 404, 409).</span>
+
+<span class="s0">### </span><span class="s1">1.2. Arquitectura en 3 Capas</span>
+<span class="s1">El software se estructuró bajo una estricta separación de responsabilidades, garantizando bajo acoplamiento y alta cohesión:</span>
+<span class="s0">1. </span><span class="s1">**Capa de Presentación (`controller`):** Controladores `@RestController` que exponen endpoints HTTP, validan los datos de entrada con Bean Validation y devuelven DTOs inmutables implementados con Java Records.</span>
+<span class="s0">2. </span><span class="s1">**Capa de Lógica de Negocio (`service`):** Servicios que encapsulan las reglas del zoológico (control de capacidad, validación de estado crítico de salud) y gestionan transacciones con `@Transactional`.</span>
+<span class="s0">3. </span><span class="s1">**Capa de Acceso a Datos (`repository` y `entity`):** Entidades JPA mapeadas a tablas de MySQL y repositorios `JpaRepository` con consultas JPQL optimizadas para erradicar el problema de las N+1 consultas.</span>
+
+<span class="s0">```</span>
+       <span class="s2">[ Cliente HTTP / Postman ]</span>
+                   <span class="s2">│</span>
+                   <span class="s2">▼ (HTTP Requests: JSON / DTOs)</span>
+   <span class="s2">┌───────────────────────────────┐</span>
+   <span class="s2">│ Capa de Presentación          │</span>
+   <span class="s2">│ (CreatureController / Zone...) │</span>
+   <span class="s2">└───────────────┬───────────────┘</span>
+                   <span class="s2">│</span>
+                   <span class="s2">▼ (Llamadas a interfaces de servicio)</span>
+   <span class="s2">┌───────────────────────────────┐</span>
+   <span class="s2">│ Capa de Lógica de Negocio     │</span>
+   <span class="s2">│ (CreatureService / Zone...)   │</span>
+   <span class="s2">└───────────────┬───────────────┘</span>
+                   <span class="s2">│</span>
+                   <span class="s2">▼ (Consultas JPA / Proyecciones)</span>
+   <span class="s2">┌───────────────────────────────┐</span>
+   <span class="s2">│ Capa de Acceso a Datos        │</span>
+   <span class="s2">│ (CreatureRepository / Zone...)│</span>
+   <span class="s2">└───────────────┬───────────────┘</span>
+                   <span class="s2">│</span>
+                   <span class="s2">▼ (JDBC / SQL Nativo)</span>
+         <span class="s2">[ MySQL: zoo_fantastico ]</span>
+<span class="s0">```</span>
+
+<span class="s0">### </span><span class="s1">1.3. Inyección de Dependencias: Constructor Injection vs. @Autowired</span>
+<span class="s1">Un aspecto esencial evaluado por el docente es el mecanismo para implementar la **Inversión de Control (IoC)** y la **Inyección de Dependencias (DI)**. En Spring existen 3 enfoques:</span>
+
+<span class="s0">| </span><span class="s1">Mecanismo de Inyección </span><span class="s0">| </span><span class="s1">Sintaxis </span><span class="s0">| </span><span class="s1">Evaluación Técnica y Decisión </span><span class="s0">|</span>
+<span class="s0">| :--- | :--- | :--- |</span>
+<span class="s0">| </span><span class="s1">**1. Por Atributo (`Field Injection`)** </span><span class="s0">| </span><span class="s1">`@Autowired private ZoneService zoneService;` </span><span class="s0">| </span><span class="s1">**Antipatrón rechazado:** Oculta dependencias, no permite campos `final` (rompe la inmutabilidad) y dificulta los tests unitarios al requerir el contenedor de Spring. </span><span class="s0">|</span>
+<span class="s0">| </span><span class="s1">**2. Por Setter (`Setter Injection`)** </span><span class="s0">| </span><span class="s1">`public void setZoneService(...)` </span><span class="s0">| </span><span class="s1">**Desaconsejado:** Permite mutar la dependencia en tiempo de ejecución, violando la inmutabilidad. </span><span class="s0">|</span>
+<span class="s0">| </span><span class="s1">**3. Por Constructor (`Constructor Injection`)** </span><span class="s0">| </span><span class="s1">`@RequiredArgsConstructor` + `private final` </span><span class="s0">| </span><span class="s1">**Estándar de Oro (Implementado):** Garantiza inmutabilidad, promueve el principio *Fail-Fast* en arranque y facilita pruebas unitarias con Mockito (`new ZoneController(mockService)`). </span><span class="s0">|</span>
+
+<span class="s1">En el proyecto se aplicó **Inyección por Constructor** asistida por Lombok (`@RequiredArgsConstructor`):</span>
+<span class="s0">```</span><span class="s3">java</span>
+<span class="s2">@RestController</span>
+<span class="s2">@RequestMapping(&quot;/api/zones&quot;)</span>
+<span class="s2">@RequiredArgsConstructor // Lombok genera el constructor canónico con los campos 'final'</span>
+<span class="s2">public class ZoneController {</span>
+    <span class="s2">private final ZoneService zoneService;        // Inmutable</span>
+    <span class="s2">private final CreatureService creatureService; // Inmutable</span>
+<span class="s2">}</span>
+<span class="s0">```</span>
+<span class="s1">*Nota:* En Spring Boot (v4.3+), cuando una clase posee un único constructor, Spring inyecta las dependencias automáticamente sin requerir `@Autowired`.</span>
+
+<span class="s0">---</span>
+
+<span class="s0">## </span><span class="s1">2. Marco Teórico e Investigación de Herramientas</span>
+
+<span class="s0">1. </span><span class="s1">**Spring Boot (v3.4+):** Framework líder en el ecosistema Java para el desarrollo de microservicios y aplicaciones web. Aporta autoconfiguración (*Convention over Configuration*), métricas de producción y un contenedor de inversión de control (IoC) y de inyección de dependencias (DI).</span>
+<span class="s0">2. </span><span class="s1">**Java 25 (LTS) &amp; Java Records:** Se utilizaron Java Records como DTOs (Data Transfer Objects). Al ser clases inmutables, transparentes y concisas con constructores canónicos automáticos, eliminan el código redundante (*boilerplate*) y protegen a la API contra ataques de asignación masiva (*Mass Assignment Vulnerabilities*).</span>
+<span class="s0">3. </span><span class="s1">**Spring Data JPA &amp; Hibernate:** Capa de abstracción sobre la persistencia relacional que reduce la necesidad de escribir sentencias JDBC manuales. Permite mapeo objeto-relacional (ORM) y creación dinámica de consultas mediante palabras clave o JPQL.</span>
+<span class="s0">4. </span><span class="s1">**Bean Validation (Hibernate Validator):** Estándar de Java (JSR-380) para definir restricciones declarativas (`@NotBlank`, `@PositiveOrZero`, `@Min`, `@Max`, `@NotNull`) directamente sobre los DTOs, desacoplando la validación estructural de la lógica de negocio.</span>
+<span class="s0">5. </span><span class="s1">**Project Lombok:** Librería de procesamiento de anotaciones en tiempo de compilación. Se empleó selectivamente (`@Getter`, `@Setter`, `@NoArgsConstructor`, `@AllArgsConstructor`, `@Builder`) evitando explícitamente `@Data` para prevenir la recursión infinita en relaciones bidireccionales.</span>
+<span class="s0">6. </span><span class="s1">**MySQL:** Motor de base de datos relacional transaccional (ACID) robusto, garantizando integridad referencial mediante claves foráneas (`zone_id` referenciando a `zones(id)`).</span>
+<span class="s0">7. </span><span class="s1">**Apache Maven:** Gestor de construcción y dependencias que automatiza el ciclo de vida del software (compilación, pruebas unitarias, empaquetado JAR).</span>
+
+<span class="s0">---</span>
+
+<span class="s0">## </span><span class="s1">3. Planificación del Proyecto y Gestión de Versiones con Gitflow</span>
+
+<span class="s1">El equipo adoptó la estrategia **Gitflow** para garantizar un flujo de trabajo paralelo, ordenado y trazable:</span>
+
+<span class="s0">### </span><span class="s1">3.1. Estructura de Ramas</span>
+<span class="s0">- </span><span class="s1">`main`: Rama de producción que almacena versiones estables y probadas del sistema.</span>
+<span class="s0">- </span><span class="s1">`develop`: Rama de integración donde convergen las nuevas características desarrolladas por cada integrante.</span>
+<span class="s0">- </span><span class="s1">`feature/*`: Ramas secundarias de corta duración creadas para implementar tareas puntuales:</span>
+  <span class="s0">- </span><span class="s1">`feature/setup-project`: Configuración de dependencias Maven, propiedades de MySQL y Docker Compose.</span>
+  <span class="s0">- </span><span class="s1">`feature/creature-crud`: Creación de la entidad `Creature`, repositorio, servicio y controlador inicial.</span>
+  <span class="s0">- </span><span class="s1">`feature/zone-crud`: Extensión para `Zone`, relación `@ManyToOne`/`@OneToMany` y validación de capacidad.</span>
+  <span class="s0">- </span><span class="s1">`feature/n-plus-1-optimization`: Optimización de consultas JPQL con `JOIN FETCH` y proyecciones.</span>
+  <span class="s0">- </span><span class="s1">`feature/global-exception-handling`: Implementación del `@RestControllerAdvice` y DTO `ErrorResponse`.</span>
+
+<span class="s0">### </span><span class="s1">3.2. Proceso de Integración y Entrega</span>
+<span class="s0">1. </span><span class="s1">Cada desarrollador trabajó exclusivamente en su rama `feature/*` correspondiente.</span>
+<span class="s0">2. </span><span class="s1">Al culminar la funcionalidad, se abrieron **Pull Requests (PR)** hacia la rama `develop` para revisión de código por pares.</span>
+<span class="s0">3. </span><span class="s1">Tras superar las pruebas unitarias y de integración, se realizó el PR final de `develop` hacia la rama `main`, asignando al docente **`soldash`** como revisor oficial en GitHub.</span>
+
+<span class="s0">---</span>
+
+<span class="s0">## </span><span class="s1">4. Análisis Detallado del Problema de las N+1 Consultas</span>
+
+<span class="s0">### </span><span class="s1">4.1. Definición del Problema</span>
+<span class="s1">El problema de las $N+1$ consultas se suscita cuando un framework ORM ejecuta **1 consulta SQL inicial** para obtener un conjunto de $N$ entidades padre, y posteriormente ejecuta **$N$ consultas SQL adicionales** (una por cada registro) para cargar la entidad relacionada cuando dicha relación se encuentra configurada con carga diferida (`FetchType.LAZY`).</span>
+
+<span class="s0">### </span><span class="s1">4.2. Manifestación en el Zoológico (Antes de la Optimización)</span>
+<span class="s1">En la relación `@ManyToOne` entre `Creature` y `Zone`:</span>
+<span class="s1">Al ejecutar `GET /api/creatures`, el repositorio ejecutaba un `findAll()` estándar:</span>
+<span class="s0">```</span><span class="s3">sql</span>
+<span class="s2">-- 1. Consulta inicial para obtener las N criaturas:</span>
+<span class="s2">SELECT c.id, c.name, c.species, c.size, c.danger_level, c.health_status, c.zone_id FROM creatures c;</span>
+<span class="s0">```</span>
+<span class="s1">Posteriormente, al iterar la lista para construir el DTO `CreatureResponse` y extraer el nombre de la zona (`creature.getZone().getName()`), Hibernate detectaba que la entidad `Zone` no estaba cargada en el contexto de persistencia y disparaba **$N$ consultas adicionales**:</span>
+<span class="s0">```</span><span class="s3">sql</span>
+<span class="s2">-- Consultas 2 a N+1 (1 consulta por cada criatura listada):</span>
+<span class="s2">Hibernate: SELECT z.id, z.name, z.description, z.capacity FROM zones z WHERE z.id = 1;</span>
+<span class="s2">Hibernate: SELECT z.id, z.name, z.description, z.capacity FROM zones z WHERE z.id = 2;</span>
+<span class="s2">Hibernate: SELECT z.id, z.name, z.description, z.capacity FROM zones z WHERE z.id = 1;</span>
+<span class="s2">...</span>
+<span class="s2">Hibernate: SELECT z.id, z.name, z.description, z.capacity FROM zones z WHERE z.id = N;</span>
+<span class="s0">```</span>
+<span class="s1">*Impacto:* Para 100 criaturas, se producían **101 viajes de ida y vuelta (round-trips) a la base de datos**, generando alta latencia y sobrecarga en el pool de conexiones.</span>
+
+<span class="s0">### </span><span class="s1">4.3. Solución Implementada (Después de la Optimización)</span>
+<span class="s1">Para erradicar definitivamente este problema se aplicaron dos técnicas senior:</span>
+
+<span class="s0">#### </span><span class="s1">A. En Criaturas: `JOIN FETCH`</span>
+<span class="s1">En `CreatureRepository`, se sobreescribió la consulta de listado mediante JPQL explícito:</span>
+<span class="s0">```</span><span class="s3">java</span>
+<span class="s2">@Query(&quot;SELECT c FROM Creature c LEFT JOIN FETCH c.zone&quot;)</span>
+<span class="s2">List&lt;Creature&gt; findAllWithZone();</span>
+<span class="s0">```</span>
+<span class="s1">**Traza SQL resultante en Hibernate (`spring.jpa.show-sql=true`):**</span>
+<span class="s0">```</span><span class="s3">sql</span>
+<span class="s2">-- Consulta ÚNICA optimizada:</span>
+<span class="s2">Hibernate: </span>
+    <span class="s2">select</span>
+        <span class="s2">c1_0.id,</span>
+        <span class="s2">c1_0.danger_level,</span>
+        <span class="s2">c1_0.health_status,</span>
+        <span class="s2">c1_0.name,</span>
+        <span class="s2">c1_0.size,</span>
+        <span class="s2">c1_0.species,</span>
+        <span class="s2">z1_0.id,</span>
+        <span class="s2">z1_0.capacity,</span>
+        <span class="s2">z1_0.description,</span>
+        <span class="s2">z1_0.name </span>
+    <span class="s2">from</span>
+        <span class="s2">creatures c1_0 </span>
+    <span class="s2">left join</span>
+        <span class="s2">zones z1_0 </span>
+            <span class="s2">on z1_0.id=c1_0.zone_id;</span>
+<span class="s0">```</span>
+<span class="s1">*Resultado:* **1 sola consulta SQL**, independientemente de si existen 10 o 10,000 criaturas.</span>
+
+<span class="s0">#### </span><span class="s1">B. En Zonas: Proyección Directa con `COUNT()` Agrupado</span>
+<span class="s1">Para obtener el campo `creatureCount` sin disparar consultas adicionales al recorrer la colección `List</span><span class="s4">&lt;Creature&gt; </span><span class="s1">creatures`, se diseñó una proyección directa al record `ZoneResponse`:</span>
+<span class="s0">```</span><span class="s3">java</span>
+<span class="s2">@Query(&quot;&quot;&quot;</span>
+    <span class="s2">SELECT new com.javeriana.zoofantastico.dto.ZoneResponse(</span>
+        <span class="s2">z.id, z.name, z.description, z.capacity, COUNT(c)</span>
+    <span class="s2">)</span>
+    <span class="s2">FROM Zone z</span>
+    <span class="s2">LEFT JOIN z.creatures c</span>
+    <span class="s2">GROUP BY z.id, z.name, z.description, z.capacity</span>
+<span class="s2">&quot;&quot;&quot;)</span>
+<span class="s2">List&lt;ZoneResponse&gt; findAllWithCreatureCount();</span>
+<span class="s0">```</span>
+<span class="s1">*Resultado:* Toda la agregación se computa eficientemente en el motor de base de datos MySQL en una única operación.</span>
+
+<span class="s0">---</span>
+
+<span class="s0">## </span><span class="s1">5. Pruebas y Validación de Criterios de Aceptación (Evidencia HTTP)</span>
+
+<span class="s0">### </span><span class="s1">Caso 1: Crear Zona Exitosamente (HTTP 201 Created)</span>
+<span class="s0">- </span><span class="s1">**Endpoint:** `POST /api/zones`</span>
+<span class="s0">- </span><span class="s1">**Request Body:**</span>
+  <span class="s0">```</span><span class="s3">json</span>
+  <span class="s2">{</span>
+    <span class="s2">&quot;name&quot;: &quot;Laguna de Sirenas&quot;,</span>
+    <span class="s2">&quot;description&quot;: &quot;Hábitat acuático de alta humedad&quot;,</span>
+    <span class="s2">&quot;capacity&quot;: 2</span>
+  <span class="s2">}</span>
+  <span class="s0">```</span>
+<span class="s0">- </span><span class="s1">**Response (HTTP 201 Created):**</span>
+  <span class="s0">```</span><span class="s3">json</span>
+  <span class="s2">{</span>
+    <span class="s2">&quot;id&quot;: 1,</span>
+    <span class="s2">&quot;name&quot;: &quot;Laguna de Sirenas&quot;,</span>
+    <span class="s2">&quot;description&quot;: &quot;Hábitat acuático de alta humedad&quot;,</span>
+    <span class="s2">&quot;capacity&quot;: 2,</span>
+    <span class="s2">&quot;creatureCount&quot;: 0</span>
+  <span class="s2">}</span>
+  <span class="s0">```</span>
+
+<span class="s0">### </span><span class="s1">Caso 2: Validación Bean Validation en Criaturas (HTTP 400 Bad Request)</span>
+<span class="s0">- </span><span class="s1">**Regla:** `size &gt;= 0` y `dangerLevel` entre 1 y 10.</span>
+<span class="s0">- </span><span class="s1">**Endpoint:** `POST /api/creatures`</span>
+<span class="s0">- </span><span class="s1">**Request Body:**</span>
+  <span class="s0">```</span><span class="s3">json</span>
+  <span class="s2">{</span>
+    <span class="s2">&quot;name&quot;: &quot;Dragón Colacuerno&quot;,</span>
+    <span class="s2">&quot;species&quot;: &quot;Dragón&quot;,</span>
+    <span class="s2">&quot;size&quot;: -3.5,</span>
+    <span class="s2">&quot;dangerLevel&quot;: 12,</span>
+    <span class="s2">&quot;healthStatus&quot;: &quot;healthy&quot;,</span>
+    <span class="s2">&quot;zoneId&quot;: 1</span>
+  <span class="s2">}</span>
+  <span class="s0">```</span>
+<span class="s0">- </span><span class="s1">**Response (HTTP 400 Bad Request):**</span>
+  <span class="s0">```</span><span class="s3">json</span>
+  <span class="s2">{</span>
+    <span class="s2">&quot;timestamp&quot;: &quot;2026-09-21T10:15:30.123&quot;,</span>
+    <span class="s2">&quot;status&quot;: 400,</span>
+    <span class="s2">&quot;error&quot;: &quot;Bad Request&quot;,</span>
+    <span class="s2">&quot;message&quot;: &quot;Error de validación en los campos enviados&quot;,</span>
+    <span class="s2">&quot;validationErrors&quot;: {</span>
+      <span class="s2">&quot;size&quot;: &quot;El tamaño debe ser mayor o igual a 0&quot;,</span>
+      <span class="s2">&quot;dangerLevel&quot;: &quot;El nivel de peligrosidad máximo permitido es 10&quot;</span>
+    <span class="s2">}</span>
+  <span class="s2">}</span>
+  <span class="s0">```</span>
+
+<span class="s0">### </span><span class="s1">Caso 3: Violación de Regla de Capacidad de Zona (HTTP 409 Conflict)</span>
+<span class="s0">- </span><span class="s1">**Regla:** No se puede asociar una criatura a una zona que ya alcanzó su capacidad máxima.</span>
+<span class="s0">- </span><span class="s1">**Contexto:** La zona 1 tiene capacidad para 2 criaturas y ya tiene 2 asignadas.</span>
+<span class="s0">- </span><span class="s1">**Endpoint:** `POST /api/creatures`</span>
+<span class="s0">- </span><span class="s1">**Response (HTTP 409 Conflict):**</span>
+  <span class="s0">```</span><span class="s3">json</span>
+  <span class="s2">{</span>
+    <span class="s2">&quot;timestamp&quot;: &quot;2026-09-21T10:18:45.678&quot;,</span>
+    <span class="s2">&quot;status&quot;: 409,</span>
+    <span class="s2">&quot;error&quot;: &quot;Conflict&quot;,</span>
+    <span class="s2">&quot;message&quot;: &quot;La zona 'Laguna de Sirenas' (ID: 1) ha alcanzado su capacidad máxima de 2 criatura(s). No es posible asignar nuevas criaturas.&quot;</span>
+  <span class="s2">}</span>
+  <span class="s0">```</span>
+
+<span class="s0">### </span><span class="s1">Caso 4: Eliminación de Criatura en Estado Crítico (HTTP 409 Conflict)</span>
+<span class="s0">- </span><span class="s1">**Regla:** No se permite eliminar una criatura si su `healthStatus` es `&quot;critical&quot;`.</span>
+<span class="s0">- </span><span class="s1">**Endpoint:** `DELETE /api/creatures/2`</span>
+<span class="s0">- </span><span class="s1">**Response (HTTP 409 Conflict):**</span>
+  <span class="s0">```</span><span class="s3">json</span>
+  <span class="s2">{</span>
+    <span class="s2">&quot;timestamp&quot;: &quot;2026-09-21T10:20:12.450&quot;,</span>
+    <span class="s2">&quot;status&quot;: 409,</span>
+    <span class="s2">&quot;error&quot;: &quot;Conflict&quot;,</span>
+    <span class="s2">&quot;message&quot;: &quot;Operación rechazada: No se permite eliminar la criatura 'Fénix Dorado' porque su estado de salud es crítico ('critical'). Debe recibir atención veterinaria previa.&quot;</span>
+  <span class="s2">}</span>
+  <span class="s0">```</span>
+
+<span class="s0">### </span><span class="s1">Caso 5: Eliminación de Zona con Criaturas Asignadas (HTTP 409 Conflict)</span>
+<span class="s0">- </span><span class="s1">**Regla:** Solo se permite eliminar una zona si no contiene criaturas asignadas.</span>
+<span class="s0">- </span><span class="s1">**Endpoint:** `DELETE /api/zones/1`</span>
+<span class="s0">- </span><span class="s1">**Response (HTTP 409 Conflict):**</span>
+  <span class="s0">```</span><span class="s3">json</span>
+  <span class="s2">{</span>
+    <span class="s2">&quot;timestamp&quot;: &quot;2026-09-21T10:22:05.110&quot;,</span>
+    <span class="s2">&quot;status&quot;: 409,</span>
+    <span class="s2">&quot;error&quot;: &quot;Conflict&quot;,</span>
+    <span class="s2">&quot;message&quot;: &quot;No se permite eliminar la zona 'Laguna de Sirenas' (ID: 1) porque tiene 2 criatura(s) mágica(s) asignada(s). Reubique o elimine las criaturas antes de eliminar la zona.&quot;</span>
+  <span class="s2">}</span>
+  <span class="s0">```</span>
+
+<span class="s0">### </span><span class="s1">Caso 6: Consulta de Criaturas de una Zona Específica (HTTP 200 OK) - Criterio Evaluado en Sustentación</span>
+<span class="s0">- </span><span class="s1">**Requerimiento:** El docente solicitó en la sustentación oral listar en Postman todas las criaturas que pertenecen a una zona determinada.</span>
+<span class="s0">- </span><span class="s1">**Resolución Implementada:**</span>
+  <span class="s0">1. </span><span class="s1">**Enfoque Principal (`GET /api/zones/1`):** Retorna la zona completa con su capacidad, `creatureCount` y el array embebido `creatures` mapeado a `CreatureResponse`.</span>
+  <span class="s0">2. </span><span class="s1">**Sub-recurso Directo (`GET /api/zones/1/creatures`):** Retorna el arreglo plano de criaturas.</span>
+  <span class="s0">3. </span><span class="s1">**Filtro (`GET /api/creatures?zoneId=1`):** Filtra criaturas por zona.</span>
+<span class="s0">- </span><span class="s1">**Optimización SQL:** Ejecuta `findByZoneIdWithZone(1L)` con `LEFT JOIN FETCH c.zone` en `CreatureRepository`, garantizando **1 sola consulta SQL** sin ciclos.</span>
+<span class="s0">- </span><span class="s1">**Response de Zona con Criaturas en Postman (`GET /api/zones/1`):**</span>
+  <span class="s0">```</span><span class="s3">json</span>
+  <span class="s2">{</span>
+    <span class="s2">&quot;id&quot;: 1,</span>
+    <span class="s2">&quot;name&quot;: &quot;Montañas Nubladas&quot;,</span>
+    <span class="s2">&quot;description&quot;: &quot;Hábitat rocoso de gran altura&quot;,</span>
+    <span class="s2">&quot;capacity&quot;: 5,</span>
+    <span class="s2">&quot;creatureCount&quot;: 2,</span>
+    <span class="s2">&quot;creatures&quot;: [</span>
+      <span class="s2">{</span>
+        <span class="s2">&quot;id&quot;: 1,</span>
+        <span class="s2">&quot;name&quot;: &quot;Dragón Colacuerno Húngaro&quot;,</span>
+        <span class="s2">&quot;species&quot;: &quot;Dragón&quot;,</span>
+        <span class="s2">&quot;size&quot;: 15.5,</span>
+        <span class="s2">&quot;dangerLevel&quot;: 9,</span>
+        <span class="s2">&quot;healthStatus&quot;: &quot;healthy&quot;,</span>
+        <span class="s2">&quot;zoneId&quot;: 1,</span>
+        <span class="s2">&quot;zoneName&quot;: &quot;Montañas Nubladas&quot;</span>
+      <span class="s2">},</span>
+      <span class="s2">{</span>
+        <span class="s2">&quot;id&quot;: 4,</span>
+        <span class="s2">&quot;name&quot;: &quot;Fénix Carmesí&quot;,</span>
+        <span class="s2">&quot;species&quot;: &quot;Fénix&quot;,</span>
+        <span class="s2">&quot;size&quot;: 1.2,</span>
+        <span class="s2">&quot;dangerLevel&quot;: 4,</span>
+        <span class="s2">&quot;healthStatus&quot;: &quot;healthy&quot;,</span>
+        <span class="s2">&quot;zoneId&quot;: 1,</span>
+        <span class="s2">&quot;zoneName&quot;: &quot;Montañas Nubladas&quot;</span>
+      <span class="s2">}</span>
+    <span class="s2">]</span>
+  <span class="s2">}</span>
+  <span class="s0">```</span>
+
+<span class="s0">---</span>
+
+<span class="s0">## </span><span class="s1">6. Desafíos Enfrentados y Soluciones Aplicadas</span>
+
+<span class="s0">1. </span><span class="s1">**Ciclos Infinitos en toString y Serialización JSON:**</span>
+   <span class="s0">- </span><span class="s1">*Problema:* El uso inicial de `@Data` en las entidades provocaba llamadas circulares y excepciones de desbordamiento de pila.</span>
+   <span class="s0">- </span><span class="s1">*Solución:* Reemplazo de `@Data` por anotaciones granulares (`@Getter`, `@Setter`, `@NoArgsConstructor`) y desacoplamiento absoluto mediante DTOs inmutables con **Java Records**.</span>
+<span class="s0">2. </span><span class="s1">**Resolución Definitiva: Visualización de Criaturas de una Zona en Postman:**</span>
+   <span class="s0">- </span><span class="s1">*Problema:* Durante la sustentación inicial, al consultar `GET /api/zones/{id}` no se mostraba el arreglo de criaturas para evitar ciclos infinitos y N+1.</span>
+   <span class="s0">- </span><span class="s1">*Solución:* Se actualizó `ZoneResponse` para incluir `List</span><span class="s4">&lt;CreatureResponse&gt; </span><span class="s1">creatures` mediante desacoplamiento DTO inmutable y se implementó `getZoneById` en `ZoneServiceImpl` con `findByZoneIdWithZone` (`JOIN FETCH`). Adicionalmente se crearon los endpoints `GET /api/zones/{id}/creatures` y `GET /api/creatures?zoneId={id}`. De esta manera, el requerimiento en Postman quedó resuelto al 100% de forma segura y sin impacto de rendimiento.</span>
+<span class="s0">3. </span><span class="s1">**Evitar Errores 500 Inesperados ante Reglas de Negocio:**</span>
+   <span class="s0">- </span><span class="s1">*Problema:* Lanzar `IllegalStateException` genérico por defecto producía respuestas HTTP 500 (Internal Server Error), lo cual es semánticamente incorrecto para violaciones lógicas provocadas por el usuario.</span>
+   <span class="s0">- </span><span class="s1">*Solución:* Creación de `BusinessRuleException` interceptada en `@RestControllerAdvice` para mapear consistentemente a HTTP 409 (Conflict).</span>
+<span class="s0">4. </span><span class="s1">**Mantenimiento de Transaccionalidad:**</span>
+   <span class="s0">- </span><span class="s1">*Solución:* Se aplicó `@Transactional(readOnly = true)` a nivel de clase de servicio y `@Transactional` explícito en los métodos de escritura (create, update, delete) para optimizar el rendimiento del gestor de transacciones y garantizar aislamiento ACID.</span>
+
+<span class="s0">---</span>
+
+<span class="s0">## </span><span class="s1">7. Reflexión y Aprendizajes</span>
+
+<span class="s1">La implementación de este proyecto demostró que la **arquitectura en 3 capas** no es un mero requisito formal, sino un estándar indispensable en proyectos empresariales reales:</span>
+<span class="s0">- </span><span class="s1">Permite que la capa web cambie sin impactar las reglas de negocio.</span>
+<span class="s0">- </span><span class="s1">Facilita la realización de pruebas unitarias aisladas con mocks (Mockito) sin necesidad de levantar servidores ni bases de datos.</span>
+<span class="s0">- </span><span class="s1">Proporciona predictibilidad y trazabilidad al depurar cuellos de botella de rendimiento como el problema $N+1$.</span>
+
+<span class="s0">---</span>
+
+<span class="s0">## </span><span class="s1">8. Declaración sobre el Uso de Inteligencia Artificial</span>
+
+<span class="s1">En cumplimiento con la directriz de honestidad académica de la guía de laboratorio:</span>
+
+<span class="s0">- </span><span class="s1">**Herramientas de IA consultadas:** Antigravity / Gemini.</span>
+<span class="s0">- </span><span class="s1">**Prompts y consultas realizadas:**</span>
+  <span class="s0">- </span><span class="s1">*&quot;Desarrollar el código completo y la estructura para el sistema CRUD 'Zoo de Mascotas Fantásticas' en Spring Boot y Java 25 con arquitectura en 3 capas, Lombok sin @Data, DTOs con records y mitigación del problema N+1&quot;.*</span>
+<span class="s0">- </span><span class="s1">**Aportes de la IA:**</span>
+  <span class="s0">- </span><span class="s1">Generación del esqueleto inicial (*scaffolding*) de clases, DTOs y configuración de `pom.xml`.</span>
+<span class="s0">- </span><span class="s1">**Validaciones, Decisiones y Correcciones tomadas por el equipo:**</span>
+  <span class="s0">- </span><span class="s1">El equipo validó la semántica de los códigos de estado HTTP (garantizando 409 en salud crítica y límites de capacidad en lugar de 500).</span>
+  <span class="s0">- </span><span class="s1">Se verificó que las consultas JPQL contaran con `LEFT JOIN FETCH` y que el mapeador no invocara getters perezosos fuera de la transacción.</span>
+  <span class="s0">- </span><span class="s1">Se añadieron pruebas unitarias automatizadas con Mockito para asegurar la cobertura de todas las ramas lógicas condicionales.</span>
+<span class="s0">- </span><span class="s1">**Declaración:** Todos los integrantes del equipo comprenden la totalidad de las clases, anotaciones y consultas entregadas y están capacitados para sustentarlas técnicamente.</span>
+
+<span class="s0">---</span>
+
+<span class="s0">## </span><span class="s1">9. Guía Rápida de Defensa Técnica para la Sustentación Individual</span>
+
+<span class="s0">| </span><span class="s1">Pregunta Típica del Docente </span><span class="s0">| </span><span class="s1">Respuesta Técnica Rigurosa </span><span class="s0">|</span>
+<span class="s0">| :--- | :--- |</span>
+<span class="s0">| </span><span class="s1">**¿Cómo inyectan dependencias y por qué no usaron `@Autowired` en los atributos?** </span><span class="s0">| </span><span class="s1">*&quot;Profesor, usamos Inyección por Constructor con `@RequiredArgsConstructor` de Lombok y atributos `private final`. No usamos inyección por campo (`@Autowired`) porque es un antipatrón: rompe la inmutabilidad, acopla el código al contenedor e impide pruebas unitarias aisladas sin reflexión. Por constructor garantizamos inmutabilidad, fail-fast en arranque y testabilidad pura con Mockito.&quot;* </span><span class="s0">|</span>
+<span class="s0">| </span><span class="s1">**¿Por qué `GET /api/zones` no devuelve todas las criaturas anidadas en el JSON?** </span><span class="s0">| </span><span class="s1">*&quot;Para prevenir recursión infinita (`StackOverflowError`) por el ciclo bidireccional entre Zone y Creature, evitar `LazyInitializationException` y eliminar sobrecostos N+1. La zona devuelve el conteo `creatureCount` calculado en SQL, y el detalle de animales se consulta en el sub-recurso RESTful `GET /api/zones/{id}/creatures` optimizado con `JOIN FETCH`.&quot;* </span><span class="s0">|</span>
+<span class="s0">| </span><span class="s1">**¿Cómo solucionaron el problema de las N+1 consultas?** </span><span class="s0">| </span><span class="s1">*&quot;En `CreatureRepository` sobreescribimos las consultas con JPQL usando `LEFT JOIN FETCH c.zone`. Esto hace que Hibernate ejecute un único `SELECT` relacional con `LEFT JOIN`, trayendo las criaturas y su zona en un único viaje a la base de datos (round-trip).&quot;* </span><span class="s0">|</span>
+<span class="s0">| </span><span class="s1">**¿Cómo manejan los errores sin retornar error 500?** </span><span class="s0">| </span><span class="s1">*&quot;Con un interceptor global `@RestControllerAdvice` (`GlobalExceptionHandler`). Excepciones de negocio como `BusinessRuleException` o `ResourceNotFoundException` se capturan y retornan respuestas semánticas con códigos HTTP 409 (Conflict) y 404 (Not Found) junto con un payload uniforme `ErrorResponse`.&quot;* </span><span class="s0">|</span>
+</pre>
+</body>
+</html>

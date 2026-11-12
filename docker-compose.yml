@@ -1,0 +1,15 @@
+﻿services:
+  mysql-zoo:
+    image: mysql:8.4
+    container_name: mysql-zoo-fantastico
+    restart: always
+    environment:
+      MYSQL_DATABASE: zoo_fantastico
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_zoo_data:/var/lib/mysql
+
+volumes:
+  mysql_zoo_data:
